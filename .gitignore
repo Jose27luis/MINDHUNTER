@@ -1,0 +1,9 @@
+# Project place file
+/MindHunter.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+# API Keys
+src/server/Secrets.luau
