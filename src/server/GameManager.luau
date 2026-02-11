@@ -5,6 +5,7 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local MapData = require(game.ReplicatedStorage.Shared.MapData)
 local MapBuilder = require(script.Parent.MapBuilder)
 local MonsterSpawner = require(script.Parent.MonsterSpawner)
+local ClassManager = require(script.Parent.ClassManager)
 
 local GameManager = {}
 
@@ -149,7 +150,34 @@ local function teleportPlayers(location)
 		end
 	end
 end
--- (Rest of checkWinCondition unchanged)
+-- Verificar victoria/derrota
+local function checkWinCondition()
+	local activePlayers = 0
+	local escapedPlayers = 0
+	local deadPlayers = 0
+	
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+			if player:GetAttribute("Escaped") then
+				escapedPlayers += 1
+			else
+				activePlayers += 1 -- Jugando activamente
+			end
+		else
+			deadPlayers += 1
+		end
+	end
+	
+	if activePlayers == 0 then
+		-- Termino la ronda
+		if escapedPlayers > 0 then
+			return "WIN"
+		else
+			return "LOSE"
+		end
+	end
+	return nil
+end
 
 -- Bucle principal
 local function gameLoop()
@@ -179,18 +207,44 @@ local function gameLoop()
 		statusValue.Value = "ENCUENTRA " .. Config.TOTAL_KEYS .. " LLAVES PARA ESCAPAR!"
 		timer = Config.ROUND_TIME
 		
-		-- Setup
+		-- Setup Mapa y Jugadores
 		MapBuilder.generateMansion()
 		spawnKeys()
 		teleportPlayers("GAME")
 		task.wait(2)
-		MonsterSpawner.spawnMonster()
+		
+		-- Spawn Monster
+		local monsterCtrl = MonsterSpawner.spawnMonster()
+		local currentMonsterSpeed = Config.MONSTER_SPEED_INITIAL
 		
 		-- Game Loop
 		local roundResult = nil
+		local elapsedTime = 0
+		
 		while timer > 0 do
 			timeValue.Value = timer
 			timer -= 1
+			elapsedTime += 1
+			
+			-- Dificultad Progresiva (Cada 60s)
+			if elapsedTime % 60 == 0 then
+				if currentMonsterSpeed < Config.MONSTER_SPEED_MAX then
+					currentMonsterSpeed = math.min(Config.MONSTER_SPEED_MAX, currentMonsterSpeed + Config.DIFFICULTY_RAMP_RATE)
+					statusValue.Value = "SENOR BARRIGA SE ESTA ENOJANDO! (Velocidad: " .. currentMonsterSpeed .. ")"
+					
+					-- Actualizar velocidad del monstruo
+					-- Nota: MonsterSpawner deberia devolver el controlador o referencia
+					-- Como MonsterSpawner retorna Model, necesitamos acceder al Controller o hacerlo global.
+					-- Por simplicidad, buscaremos el humanoide directamente aqui O asumiremos que MonsterController maneja la instancia unica
+					
+					-- Update: MonsterController maneja la logica. Deberia exponer una forma de acceder a la instancia activa.
+					-- Hack rapido: Buscar el modelo en workspace
+					local monster = workspace:FindFirstChild("ShadowHunter") or workspace:FindFirstChild("SenorBarriga")
+					if monster and monster:FindFirstChild("Humanoid") then
+						monster.Humanoid.WalkSpeed = currentMonsterSpeed
+					end
+				end
+			end
 			
 			-- checkWinCondition is not provided, assuming it exists elsewhere or is a placeholder
 			-- if roundResult then break end

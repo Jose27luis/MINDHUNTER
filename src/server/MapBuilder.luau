@@ -471,52 +471,127 @@ end
 function MapBuilder.buildLobby()
 	local lobbyPos = Config.LOBBY_POSITION
 	local lobbySize = 60
+	local wallHeight = 25
 	
 	local folder = Instance.new("Folder")
 	folder.Name = "Lobby"
 	folder.Parent = workspace
 	
-	-- Piso de cristal
+	-- 1. PISO (Madera elegante)
 	local floor = Instance.new("Part")
-	floor.Name = "LobbyFloor"
+	floor.Name = "Floor"
 	floor.Size = Vector3.new(lobbySize, 1, lobbySize)
 	floor.Position = lobbyPos
 	floor.Anchored = true
-	floor.Material = Enum.Material.Glass
-	floor.Color = Color3.fromRGB(100, 200, 255)
-	floor.Transparency = 0.2
+	floor.Material = Enum.Material.WoodPlanks
+	floor.Color = Color3.fromRGB(139, 69, 19) -- Cafe madera
 	floor.Parent = folder
 	
-	-- SpawnLocation
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "LobbySpawn"
-	spawn.Size = Vector3.new(10, 0.5, 10)
-	spawn.Position = lobbyPos + Vector3.new(0, 1, 0)
-	spawn.Anchored = true
-	spawn.CanCollide = false
-	spawn.Transparency = 1
-	spawn.Parent = folder
+	-- 2. TECHO
+	local ceil = Instance.new("Part")
+	ceil.Name = "Ceiling"
+	ceil.Size = Vector3.new(lobbySize, 1, lobbySize)
+	ceil.Position = lobbyPos + Vector3.new(0, wallHeight, 0)
+	ceil.Anchored = true
+	ceil.Material = Enum.Material.Concrete
+	ceil.Color = Color3.fromRGB(200, 200, 200)
+	ceil.Parent = folder
 	
-	-- Paredes invisibles
-	local wallHeight = 20
-	local thickness = 1
-	
+	-- 3. PAREDES
+	local wallThickness = 2
 	local walls = {
-		{Size = Vector3.new(lobbySize, wallHeight, thickness), Pos = lobbyPos + Vector3.new(0, wallHeight/2, -lobbySize/2)},
-		{Size = Vector3.new(lobbySize, wallHeight, thickness), Pos = lobbyPos + Vector3.new(0, wallHeight/2, lobbySize/2)},
-		{Size = Vector3.new(thickness, wallHeight, lobbySize), Pos = lobbyPos + Vector3.new(-lobbySize/2, wallHeight/2, 0)},
-		{Size = Vector3.new(thickness, wallHeight, lobbySize), Pos = lobbyPos + Vector3.new(lobbySize/2, wallHeight/2, 0)},
+		{Size = Vector3.new(lobbySize, wallHeight, wallThickness), Pos = lobbyPos + Vector3.new(0, wallHeight/2, -lobbySize/2)}, -- Norte
+		{Size = Vector3.new(lobbySize, wallHeight, wallThickness), Pos = lobbyPos + Vector3.new(0, wallHeight/2, lobbySize/2)}, -- Sur
+		{Size = Vector3.new(wallThickness, wallHeight, lobbySize), Pos = lobbyPos + Vector3.new(-lobbySize/2, wallHeight/2, 0)}, -- Oeste
+		{Size = Vector3.new(wallThickness, wallHeight, lobbySize), Pos = lobbyPos + Vector3.new(lobbySize/2, wallHeight/2, 0)}, -- Este
 	}
 	
 	for _, w in ipairs(walls) do
 		local part = Instance.new("Part")
-		part.Name = "InvisibleWall"
+		part.Name = "Wall"
 		part.Size = w.Size
 		part.Position = w.Pos
 		part.Anchored = true
-		part.Transparency = 1
+		part.Material = Enum.Material.SmoothPlastic
+		part.Color = Color3.fromRGB(230, 230, 220) -- Crema
 		part.Parent = folder
 	end
+	
+	-- 4. ILUMINACION (Calida)
+	local lightPart = Instance.new("Part")
+	lightPart.Name = "Chandelier"
+	lightPart.Size = Vector3.new(5, 1, 5)
+	lightPart.Position = lobbyPos + Vector3.new(0, wallHeight - 2, 0)
+	lightPart.Anchored = true
+	lightPart.Material = Enum.Material.Neon
+	lightPart.Color = Color3.fromRGB(255, 230, 150)
+	lightPart.Parent = folder
+	
+	local light = Instance.new("PointLight")
+	light.Brightness = 1.5
+	light.Range = 60
+	light.Color = Color3.fromRGB(255, 220, 180)
+	light.Shadows = true
+	light.Parent = lightPart
+	
+	-- 5. INFO BOARD (Instrucciones)
+	local board = Instance.new("Part")
+	board.Name = "InfoBoard"
+	board.Size = Vector3.new(16, 10, 1)
+	board.Position = lobbyPos + Vector3.new(0, 10, -lobbySize/2 + 2) -- Pared Norte
+	board.Anchored = true
+	board.Color = Color3.fromRGB(0, 0, 0)
+	board.Material = Enum.Material.Metal
+	board.Parent = folder
+	
+	local surfaceGui = Instance.new("SurfaceGui")
+	surfaceGui.Parent = board
+	surfaceGui.Face = Enum.NormalId.Back
+	
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	frame.Parent = surfaceGui
+	
+	local title = Instance.new("TextLabel")
+	title.Text = "MISION: ESCAPE"
+	title.Size = UDim2.new(1, 0, 0.2, 0)
+	title.TextColor3 = Color3.fromRGB(255, 50, 50)
+	title.Font = Enum.Font.Creepster
+	title.TextScaled = true
+	title.BackgroundTransparency = 1
+	title.Parent = frame
+	
+	local instructions = Instance.new("TextLabel")
+	instructions.Text = "- Encuentra 3 Llaves\n- Evita a Señor Barriga\n- Usa SHIFT para correr\n- Escondete en Lockers\n- Elige tu CLASE"
+	instructions.Size = UDim2.new(1, 0, 0.8, 0)
+	instructions.Position = UDim2.new(0, 0, 0.2, 0)
+	instructions.TextColor3 = Color3.fromRGB(255, 255, 255)
+	instructions.Font = Enum.Font.GothamBold
+	instructions.TextScaled = true
+	instructions.BackgroundTransparency = 1
+	instructions.Parent = frame
+
+	-- 6. MUEBLES (Sofa area)
+	local rug = Instance.new("Part")
+	rug.Name = "Rug"
+	rug.Size = Vector3.new(20, 0.1, 10)
+	rug.Position = lobbyPos + Vector3.new(0, 0.6, 10)
+	rug.Anchored = true
+	rug.CanCollide = false
+	rug.Color = Color3.fromRGB(100, 0, 0)
+	rug.Material = Enum.Material.Fabric
+	rug.Parent = folder
+	
+	-- Asiento
+	local seat = Instance.new("Seat")
+	seat.Name = "LobbySeat"
+	seat.Size = Vector3.new(4, 1, 4)
+	seat.Position = lobbyPos + Vector3.new(0, 2, 10)
+	seat.Anchored = true
+	seat.Color = Color3.fromRGB(80, 50, 30)
+	seat.Material = Enum.Material.Fabric
+	seat.Parent = folder
 end
 
 return MapBuilder

@@ -23,6 +23,11 @@ Config.MONSTER_WALK_SPEED = 14
 Config.MONSTER_CHASE_SPEED = 18
 Config.CHASE_UPDATE_INTERVAL = 0.5
 
+-- Dificultad Progresiva
+Config.MONSTER_SPEED_INITIAL = 14
+Config.MONSTER_SPEED_MAX = 22
+Config.DIFFICULTY_RAMP_RATE = 1 -- Aumento de velocidad por minuto
+
 -- Luces
 Config.LIGHTS_OFF_DURATION = 15
 
@@ -63,5 +68,30 @@ Config.MIN_PLAYERS = 1
 Config.INTERMISSION_TIME = 10
 Config.ROUND_TIME = 300 -- 5 minutos
 Config.LOBBY_POSITION = Vector3.new(0, 500, 0) -- Cielo
+
+-- Clases (Roles)
+Config.CLASSES = {
+	Runner = {
+		WalkSpeed = 18,
+		RunSpeed = 28,
+		MaxHealth = 80,
+		StaminaMax = 150,
+		Description = "Rapido y agil, pero fragil."
+	},
+	Tank = {
+		WalkSpeed = 14,
+		RunSpeed = 24,
+		MaxHealth = 150,
+		StaminaMax = 80,
+		Description = "Resistente (3 golpes), pero lento."
+	},
+	Scout = {
+		WalkSpeed = 16,
+		RunSpeed = 26,
+		MaxHealth = 100,
+		StaminaMax = 100,
+		Description = "Balanceado."
+	}
+}
 
 return Config

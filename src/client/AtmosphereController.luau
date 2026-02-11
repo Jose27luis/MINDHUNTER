@@ -46,7 +46,13 @@ local function createSounds()
 	-- Sonido ambiente horror (constante, bajo volumen)
 	ambientSound = Instance.new("Sound")
 	ambientSound.Name = "Ambient"
-	ambientSound.SoundId = "rbxassetid://9112837424"
+	-- Sonidos de ambiente (IDs genericos de Roblox)
+	local ambientSoundIds = {
+		"rbxassetid://1839257625", -- Viento
+		"rbxassetid://1843516309", -- Susurros
+		"rbxassetid://9046903332", -- Latidos (o similar)
+	}
+	ambientSound.SoundId = ambientSoundIds[math.random(1, #ambientSoundIds)]
 	ambientSound.Volume = 0.3
 	ambientSound.Looped = true
 	ambientSound.Parent = player.PlayerGui

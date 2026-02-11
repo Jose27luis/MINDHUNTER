@@ -66,26 +66,31 @@ RunService.Heartbeat:Connect(function(dt)
 	-- Verificar movimiento
 	local isMoving = humanoid.MoveDirection.Magnitude > 0
 	
+	-- Leer stats de la Clase actual (o usar default del Config)
+	local runSpeed = player:GetAttribute("RunSpeed") or Config.WALK_SPEED_RUN
+	local walkSpeed = player:GetAttribute("WalkSpeed") or Config.WALK_SPEED_NORMAL
+	local staminaMax = player:GetAttribute("StaminaMax") or Config.STAMINA_MAX
+
 	-- Logica de drenado
 	if isRunning and isMoving and stamina > 0 then
 		-- Corriendo
-		humanoid.WalkSpeed = Config.WALK_SPEED_RUN
+		humanoid.WalkSpeed = runSpeed
 		stamina = math.max(0, stamina - (Config.STAMINA_DRAIN_RATE * dt))
 		lastRunTime = tick()
 		
 		-- Efecto de cansancio (jadeo visual o FOV si quisieramos)
 	else
 		-- Caminando o parado
-		humanoid.WalkSpeed = Config.WALK_SPEED_NORMAL
+		humanoid.WalkSpeed = walkSpeed
 		
 		-- Regeneracion con delay
 		if tick() - lastRunTime > Config.STAMINA_REGEN_DELAY then
-			stamina = math.min(Config.STAMINA_MAX, stamina + (Config.STAMINA_REGEN_RATE * dt))
+			stamina = math.min(staminaMax, stamina + (Config.STAMINA_REGEN_RATE * dt))
 		end
 	end
 
 	-- Actualizar UI
-	local goalScale = stamina / Config.STAMINA_MAX
+	local goalScale = stamina / staminaMax
 	staminaFill.Size = UDim2.new(goalScale, 0, 1, 0)
 	
 	-- Color del Fill cambio segun cansancio

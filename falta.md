@@ -20,14 +20,15 @@
 - [x] Sprint del jugador (Shift para correr mas rapido)
 - [x] Stamina (barra que se gasta al correr)
 - [x] Sistema de rondas (lobby → countdown → juego → resultado)
-- [ ] Multiples llaves o puzzles cooperativos
+- [x] Multiples llaves o puzzles cooperativos
 - [ ] Dificultad progresiva (monstruo mas rapido con el tiempo)
 - [x] Escondites (lockers, armarios donde el jugador se puede ocultar)
 - [ ] Cooldown visual cuando recibes dano (pantalla roja flash)
 
 ## Fase 7 — Multijugador y social
 
-- [ ] Lobby / sala de espera
+- [x] Implementar roles cooperativos (Runner, Tank, Scout)
+- [x] Lobby / sala de espera (Mejorada con UI y Muebles)
 - [ ] Scoreboard (quien escapo, quien murio, tiempo de supervivencia)
 - [ ] Estadisticas persistentes (DataStore)
 - [ ] Roles cooperativos (uno distrae, otro busca la llave)

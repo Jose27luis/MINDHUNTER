@@ -257,4 +257,15 @@ function MonsterController.executeAction(actionData: { action: string, target: s
 	end)
 end
 
+function MonsterController.setSpeed(speed)
+	if monster then
+		local humanoid = monster:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.WalkSpeed = speed
+			-- Actualizar config local si fuera necesario, pero por ahora basta con el humanoide
+			print("[MonsterController] Velocidad actualizada a: " .. speed)
+		end
+	end
+end
+
 return MonsterController
