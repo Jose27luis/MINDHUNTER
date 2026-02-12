@@ -1,6 +1,8 @@
 local Players = game:GetService("Players")
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local MapData = require(game.ReplicatedStorage.Shared.MapData)
+local MonsterController = require(script.Parent.MonsterController)
+local MapBuilder = require(script.Parent.MapBuilder)
 
 local MonsterSpawner = {}
 
@@ -26,6 +28,7 @@ function MonsterSpawner.spawn(): Model?
 	rootPart.Size = Vector3.new(2, 2, 1)
 	rootPart.Transparency = 1
 	rootPart.CanCollide = false
+	rootPart.Anchored = false -- Asegurar que no esté anclado
 	rootPart.CFrame = CFrame.new(spawnPos)
 	rootPart.Parent = model
 
@@ -35,6 +38,7 @@ function MonsterSpawner.spawn(): Model?
 	torso.Size = Vector3.new(2.5, 2.5, 1.5) -- Gordo
 	torso.Color = Color3.fromRGB(30, 40, 60) -- Traje azul oscuro
 	torso.Material = Enum.Material.Fabric
+	torso.Anchored = false
 	torso.CanCollide = true
 	torso.Parent = model
 
@@ -44,6 +48,7 @@ function MonsterSpawner.spawn(): Model?
 	head.Size = Vector3.new(1.2, 1.2, 1.2)
 	head.Color = Color3.fromRGB(255, 200, 180) -- Piel
 	head.Material = Enum.Material.SmoothPlastic
+	head.Anchored = false
 	head.CanCollide = false
 	head.Parent = model
 	
@@ -85,6 +90,7 @@ function MonsterSpawner.spawn(): Model?
 	leftArm.Size = limbSize
 	leftArm.Color = suitColor
 	leftArm.Material = Enum.Material.Fabric
+	leftArm.Anchored = false
 	leftArm.CanCollide = false
 	leftArm.Parent = model
 
@@ -94,6 +100,7 @@ function MonsterSpawner.spawn(): Model?
 	rightArm.Size = limbSize
 	rightArm.Color = suitColor
 	rightArm.Material = Enum.Material.Fabric
+	rightArm.Anchored = false
 	rightArm.CanCollide = false
 	rightArm.Parent = model
 	
@@ -117,6 +124,7 @@ function MonsterSpawner.spawn(): Model?
 	leftLeg.Size = limbSize
 	leftLeg.Color = suitColor
 	leftLeg.Material = Enum.Material.Fabric
+	leftLeg.Anchored = false
 	leftLeg.CanCollide = false
 	leftLeg.Parent = model
 
@@ -126,6 +134,7 @@ function MonsterSpawner.spawn(): Model?
 	rightLeg.Size = limbSize
 	rightLeg.Color = suitColor
 	rightLeg.Material = Enum.Material.Fabric
+	rightLeg.Anchored = false
 	rightLeg.CanCollide = false
 	rightLeg.Parent = model
 
@@ -181,10 +190,62 @@ function MonsterSpawner.spawn(): Model?
 	humanoid.WalkSpeed = Config.MONSTER_WALK_SPEED
 	humanoid.MaxHealth = math.huge
 	humanoid.Health = math.huge
-	humanoid.HipHeight = 1.5 -- Altura normal
+	humanoid.HipHeight = 0.5 -- Altura desde el suelo a las caderas
+	humanoid.AutoRotate = true -- Rotar automáticamente hacia donde camina
 	humanoid.Parent = model
 
 	model.PrimaryPart = rootPart
+
+	-- Animator para reproducir animaciones
+	local animator = Instance.new("Animator")
+	animator.Parent = humanoid
+
+	-- Cargar animaciones de caminata de Roblox
+	local walkAnim = Instance.new("Animation")
+	walkAnim.AnimationId = "rbxassetid://507777826" -- Animación de caminar estándar
+	local walkTrack = animator:LoadAnimation(walkAnim)
+
+	local runAnim = Instance.new("Animation")
+	runAnim.AnimationId = "rbxassetid://507767714" -- Animación de correr estándar
+	local runTrack = animator:LoadAnimation(runAnim)
+
+	local idleAnim = Instance.new("Animation")
+	idleAnim.AnimationId = "rbxassetid://507766666" -- Animación idle estándar
+	local idleTrack = animator:LoadAnimation(idleAnim)
+
+	-- Reproducir animaciones según el estado del Humanoid
+	local currentTrack = nil
+
+	humanoid.Running:Connect(function(speed)
+		-- Detener animación anterior
+		if currentTrack then
+			currentTrack:Stop()
+		end
+
+		-- Reproducir animación según velocidad
+		if speed > 0.1 then
+			if speed > humanoid.WalkSpeed * 0.75 then
+				-- Corriendo
+				currentTrack = runTrack
+				currentTrack:Play()
+				currentTrack:AdjustSpeed(0.9) -- Más lento por el peso
+			else
+				-- Caminando
+				currentTrack = walkTrack
+				currentTrack:Play()
+				currentTrack:AdjustSpeed(0.8) -- Caminar más pesado
+			end
+		else
+			-- Idle (quieto)
+			currentTrack = idleTrack
+			currentTrack:Play()
+		end
+	end)
+
+	-- Iniciar con animación idle
+	idleTrack:Play()
+
+	print("[MonsterSpawner] Animaciones cargadas para Señor Barriga")
 
 	-- Sonido de pasos (Mas pesado y lento)
 	local footsteps = Instance.new("Sound")
@@ -251,6 +312,38 @@ function MonsterSpawner.spawn(): Model?
 
 	print("[MonsterSpawner] Shadow Hunter spawneado en " .. MapData.MONSTER_SPAWN_ROOM)
 	return model
+end
+
+-- Funcion de alto nivel: Spawn + Inicializar Controller
+function MonsterSpawner.spawnMonster()
+	local model = MonsterSpawner.spawn()
+	if model then
+		-- Obtener luces del mapa
+		local lights = MapBuilder.getLights()
+
+		-- Inicializar MonsterController
+		MonsterController.init(model, lights)
+
+		print("[MonsterSpawner] Monster Controller inicializado con exito")
+	else
+		warn("[MonsterSpawner] Error al spawnear el monstruo")
+	end
+	return model
+end
+
+-- Funcion para despawnear el monstruo
+function MonsterSpawner.despawnMonster()
+	local monster = workspace:FindFirstChild("SenorBarriga") or workspace:FindFirstChild("ShadowHunter")
+	if monster then
+		monster:Destroy()
+		print("[MonsterSpawner] Monstruo despawneado")
+	end
+
+	-- Limpiar cooldowns
+	damageCooldowns = {}
+
+	-- Limpiar MonsterController
+	MonsterController.init(nil, nil)
 end
 
 return MonsterSpawner

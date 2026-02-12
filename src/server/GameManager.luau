@@ -6,6 +6,8 @@ local MapData = require(game.ReplicatedStorage.Shared.MapData)
 local MapBuilder = require(script.Parent.MapBuilder)
 local MonsterSpawner = require(script.Parent.MonsterSpawner)
 local ClassManager = require(script.Parent.ClassManager)
+local ScoreboardManager = require(script.Parent.ScoreboardManager)
+local DataStoreManager = require(script.Parent.DataStoreManager)
 
 local GameManager = {}
 
@@ -31,6 +33,20 @@ local timeValue = Instance.new("IntValue")
 timeValue.Name = "Time"
 timeValue.Value = 0
 timeValue.Parent = ReplicatedStorage
+
+-- RemoteEvents para Scoreboard
+local showScoreboardEvent = Instance.new("RemoteEvent")
+showScoreboardEvent.Name = "ShowScoreboard"
+showScoreboardEvent.Parent = ReplicatedStorage
+
+local hideScoreboardEvent = Instance.new("RemoteEvent")
+hideScoreboardEvent.Name = "HideScoreboard"
+hideScoreboardEvent.Parent = ReplicatedStorage
+
+-- RemoteEvent para mensajes personales
+local showMessageEvent = Instance.new("RemoteEvent")
+showMessageEvent.Name = "ShowMessage"
+showMessageEvent.Parent = ReplicatedStorage
 
 -- Spawnear llaves
 local function spawnKeys()
@@ -124,13 +140,17 @@ local function spawnKeys()
 				kPart:Destroy()
 				
 				keysCollected += 1
+				ScoreboardManager.registerKeyCollected(player)
 				
 				-- Actualizar estado
 				if keysCollected >= Config.TOTAL_KEYS then
-					statusValue.Value = "TODAS LAS LLAVES ENCONTRADAS! ESCAPEN!"
+					statusValue.Value = "¡TODAS LAS LLAVES ENCONTRADAS! VAYAN AL JARDÍN PARA ESCAPAR!"
+				showMessageEvent:FireClient(player, "¡Recogiste la última llave! Ve al JARDÍN para escapar.", Color3.fromRGB(255, 215, 0))
 					-- Habilitar efecto en salida si quisieramos
 				else
-					statusValue.Value = "Llaves encontradas: " .. keysCollected .. "/" .. Config.TOTAL_KEYS
+					local remaining = Config.TOTAL_KEYS - keysCollected
+				statusValue.Value = "Llaves encontradas: " .. keysCollected .. "/" .. Config.TOTAL_KEYS
+				showMessageEvent:FireClient(player, "Llave recogida! Faltan " .. remaining .. " más.", Color3.fromRGB(255, 215, 0))
 				end
 			end
 		end)
@@ -208,10 +228,25 @@ local function gameLoop()
 		timer = Config.ROUND_TIME
 		
 		-- Setup Mapa y Jugadores
-		MapBuilder.generateMansion()
+		MapBuilder.build()
 		spawnKeys()
 		teleportPlayers("GAME")
 		task.wait(2)
+
+		-- Inicializar Scoreboard
+		ScoreboardManager.initRound()
+
+		-- Monitorear muerte de jugadores
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player.Character then
+				local humanoid = player.Character:FindFirstChild("Humanoid")
+				if humanoid then
+					humanoid.Died:Connect(function()
+						ScoreboardManager.registerDeath(player)
+					end)
+				end
+			end
+		end
 		
 		-- Spawn Monster
 		local monsterCtrl = MonsterSpawner.spawnMonster()
@@ -263,9 +298,56 @@ local function gameLoop()
 		else
 			statusValue.Value = "TIEMPO AGOTADO"
 		end
-		
-		task.wait(5)
-		
+
+		task.wait(2)
+
+		-- Obtener resultados finales
+		local finalScores = ScoreboardManager.getFinalScores()
+
+		-- Actualizar DataStore para cada jugador
+		local refreshStatsEvent = ReplicatedStorage:FindFirstChild("RefreshStats")
+		for _, scoreData in ipairs(finalScores) do
+			local player = Players:FindFirstChild(scoreData.PlayerName)
+			if player then
+				DataStoreManager.updateRoundStats(player, {
+					Escaped = scoreData.Escaped,
+					Died = scoreData.Died,
+					SurvivalTime = scoreData.SurvivalTime,
+					KeysCollected = scoreData.KeysCollected,
+					Class = scoreData.Class,
+					EscapeTime = scoreData.EscapeTime,
+				})
+				-- Guardar inmediatamente
+				DataStoreManager.saveData(player)
+
+				-- Refrescar UI de estadísticas
+				if refreshStatsEvent then
+					local newStats = DataStoreManager.getStatsSummary(player)
+					refreshStatsEvent:FireClient(player, newStats)
+				end
+			end
+		end
+
+		print("[GameManager] Estadísticas guardadas en DataStore")
+
+		-- Mostrar Scoreboard
+		for _, player in ipairs(Players:GetPlayers()) do
+			showScoreboardEvent:FireClient(player, finalScores)
+		end
+
+		print("[GameManager] Scoreboard mostrado - " .. #finalScores .. " jugadores")
+
+		-- Esperar antes de limpiar
+		task.wait(10)
+
+		-- Ocultar Scoreboard
+		for _, player in ipairs(Players:GetPlayers()) do
+			hideScoreboardEvent:FireClient(player)
+		end
+
+		-- Limpiar datos del scoreboard
+		ScoreboardManager.cleanup()
+
 		-- Reset
 		teleportPlayers("LOBBY")
 		
@@ -290,14 +372,35 @@ function GameManager.init()
 			local char = hit.Parent
 			local player = Players:GetPlayerFromCharacter(char)
 			
-			if player and not player:GetAttribute("Escaped") then
+			if player and not player:GetAttribute("Escaped") and currentState == GameState.PLAYING then
 				if keysCollected >= Config.TOTAL_KEYS then
 					player:SetAttribute("Escaped", true)
-					player.Character.HumanoidRootPart.CFrame = CFrame.new(Config.LOBBY_POSITION + Vector3.new(0, 5, 0))
-					-- Mensaje personal
+					ScoreboardManager.registerEscape(player)
+
+					-- Mensaje de éxito (NO teletransportar, dejar en el mundo)
+					showMessageEvent:FireClient(player, "¡ESCAPASTE! Ahora estás a salvo.", Color3.fromRGB(50, 255, 50))
+
+					-- Disparar evento de escape (para SFX)
+					local playerEscapedEvent = ReplicatedStorage:FindFirstChild("PlayerEscaped")
+					if playerEscapedEvent then
+						playerEscapedEvent:FireClient(player)
+					end
+
+					-- Hacer al jugador invisible y no colisionable (ya escapó)
+					if player.Character then
+						for _, part in ipairs(player.Character:GetDescendants()) do
+							if part:IsA("BasePart") then
+								part.Transparency = 0.7
+								part.CanCollide = false
+							end
+						end
+					end
+
+					print("[GameManager] " .. player.Name .. " ESCAPÓ exitosamente!")
 				else
-					-- Feedback
-					-- (Podriamos usar statusValue temporalmente pero afectaria a todos, mejor un RemoteEvent "ShowMessage")
+					-- Mensaje de feedback si intenta escapar sin llaves
+					local remaining = Config.TOTAL_KEYS - keysCollected
+					showMessageEvent:FireClient(player, "¡Necesitas " .. remaining .. " llaves más!", Color3.fromRGB(255, 100, 100))
 				end
 			end
 		end)

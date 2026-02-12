@@ -109,7 +109,7 @@ MapData.Rooms = {
 	},
 	PasilloTrasero = {
 		position = Vector3.new(0, 0, -180),
-		doors = { south = true, west = true, east = true }, -- Conecta Biblioteca, y extremos
+		doors = { south = true, west = true }, -- Conecta Biblioteca y oeste
 		displayName = "Pasillo Oscuro",
 		floorColor = Color3.fromRGB(20, 20, 20),
 		wallColor = Color3.fromRGB(30, 30, 30),

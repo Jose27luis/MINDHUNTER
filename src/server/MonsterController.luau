@@ -12,6 +12,7 @@ local lightsCache: { PointLight } = {}
 
 -- Cancelar la accion actual
 local function cancelAction()
+	print("[MonsterController] Cancelando acción actual")
 	isMoving = false
 
 	if actionThread then
@@ -24,43 +25,111 @@ local function cancelAction()
 		local rootPart = monster.PrimaryPart
 		if humanoid and rootPart then
 			humanoid.WalkSpeed = Config.MONSTER_WALK_SPEED
-			humanoid:MoveTo(rootPart.Position)
+			humanoid:MoveTo(rootPart.Position) -- Detener movimiento
 		end
 	end
 end
 
 -- Navegar usando PathfindingService
 local function navigateTo(targetPosition: Vector3)
-	if not monster then return end
+	if not monster then
+		warn("[MonsterController] navigateTo - monster es nil!")
+		return
+	end
 
 	local humanoid = monster:FindFirstChildOfClass("Humanoid")
 	local rootPart = monster.PrimaryPart
-	if not humanoid or not rootPart then return end
+	if not humanoid or not rootPart then
+		warn("[MonsterController] navigateTo - humanoid o rootPart faltante")
+		return
+	end
+
+	print("[MonsterController] Navegando desde " .. tostring(rootPart.Position) .. " hacia " .. tostring(targetPosition))
+
+	-- IMPORTANTE: Activar movimiento
+	isMoving = true
 
 	local path = PathfindingService:CreatePath({
-		AgentRadius = 3.5, -- Radio aumentado para la nueva escala
-		AgentHeight = 9,   -- Altura aumentada para el Shadow Hunter (aprox 9 studs)
+		AgentRadius = 2, -- Radio reducido para que pase por las puertas (12 studs de ancho)
+		AgentHeight = 7,   -- Altura del monstruo
 		AgentCanJump = false,
+		AgentCanClimb = false,
+		Costs = {
+			Water = math.huge, -- Evitar agua si hay
+		}
 	})
 
 	local success = pcall(function()
 		path:ComputeAsync(rootPart.Position, targetPosition)
 	end)
 
-	if not success or path.Status ~= Enum.PathStatus.Success then
-		warn("[MonsterController] Pathfinding fallido, moviendo directamente")
+	if not success then
+		warn("[MonsterController] Pathfinding compute falló: " .. tostring(result))
+		-- Fallback: mover directamente
 		if isMoving then
+			print("[MonsterController] Usando movimiento directo como fallback")
 			humanoid:MoveTo(targetPosition)
-			humanoid.MoveToFinished:Wait()
+			local timeout = humanoid.MoveToFinished:Wait()
 		end
 		return
 	end
 
-	for _, waypoint in path:GetWaypoints() do
-		if not isMoving then break end
-		humanoid:MoveTo(waypoint.Position)
-		humanoid.MoveToFinished:Wait()
+	if path.Status ~= Enum.PathStatus.Success then
+		warn("[MonsterController] Path status: " .. tostring(path.Status))
+		-- Fallback: mover directamente
+		if isMoving then
+			print("[MonsterController] Usando movimiento directo como fallback")
+			humanoid:MoveTo(targetPosition)
+			local timeout = humanoid.MoveToFinished:Wait()
+		end
+		return
 	end
+
+	local waypoints = path:GetWaypoints()
+	print("[MonsterController] Path encontrado con " .. #waypoints .. " waypoints")
+
+	-- Seguir cada waypoint del path
+	for i, waypoint in ipairs(waypoints) do
+		if not isMoving then
+			print("[MonsterController] Movimiento cancelado")
+			break
+		end
+
+		-- Saltar waypoints que requieran salto (el monstruo no puede saltar)
+		if waypoint.Action == Enum.PathWaypointAction.Jump then
+			print("[MonsterController] Saltando waypoint de salto")
+			continue
+		end
+
+		-- Mover al waypoint
+		humanoid:MoveTo(waypoint.Position)
+
+		-- Esperar con timeout (5 segundos máximo por waypoint)
+		local moveFinished = false
+		local connection
+		connection = humanoid.MoveToFinished:Connect(function(reached)
+			moveFinished = true
+			connection:Disconnect()
+		end)
+
+		-- Timeout de 5 segundos
+		local startTime = tick()
+		while not moveFinished and (tick() - startTime) < 5 do
+			task.wait(0.1)
+			if not isMoving then break end
+		end
+
+		if connection then
+			connection:Disconnect()
+		end
+
+		-- Debug cada 3 waypoints
+		if i % 3 == 0 then
+			print("[MonsterController] Progreso: " .. i .. "/" .. #waypoints .. " waypoints")
+		end
+	end
+
+	print("[MonsterController] Llegó al destino")
 end
 
 -- Resolver nombre de habitacion a posicion Vector3
@@ -231,8 +300,10 @@ function MonsterController.executeAction(actionData: { action: string, target: s
 	local action = actionData.action
 	local target = actionData.target
 
+	-- Establecer isMoving ANTES de spawnear el thread
+	isMoving = true
+
 	actionThread = task.spawn(function()
-		isMoving = true
 
 		if action == "GO_TO" then
 			doGoTo(target)

@@ -4,6 +4,7 @@ local MonsterSpawner = require(script.MonsterSpawner)
 local MonsterController = require(script.MonsterController)
 local GameManager = require(script.GameManager)
 local TheListener = require(script.TheListener)
+local DataStoreManager = require(script.DataStoreManager)
 
 print("[MindHunter] Servidor iniciado")
 
@@ -19,20 +20,13 @@ createRemote("KeyCollected")
 createRemote("PlayerEscaped")
 createRemote("ShowMessage")
 
--- 1. Construir el mapa
-MapBuilder.build()
+-- 1. Inicializar DataStore (cargar/guardar datos de jugadores)
+DataStoreManager.init()
 
--- 2. Spawnear el monstruo
-local monster = MonsterSpawner.spawn()
-
--- 3. Inicializar el controlador del monstruo
-local lights = MapBuilder.getLights()
-MonsterController.init(monster, lights)
-
--- 4. Iniciar el sistema de juego (llave + escape)
+-- 2. Iniciar el sistema de juego (maneja mapa, rondas, y monstruo)
 GameManager.init()
 
--- 5. Iniciar el sistema de escucha
+-- 3. Iniciar el sistema de escucha de IA
 TheListener.start()
 
 print("[MindHunter] Todos los sistemas activos")
