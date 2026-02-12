@@ -2,7 +2,7 @@ local Config = {}
 
 -- Modelo de IA (Groq)
 Config.AI_MODEL = "llama-3.3-70b-versatile"
-Config.MAX_TOKENS = 256
+Config.MAX_TOKENS = 350
 
 -- Buffer de chat
 Config.BUFFER_INTERVAL = 12 -- segundos entre envios a la API
@@ -93,5 +93,18 @@ Config.CLASSES = {
 		Description = "Balanceado."
 	}
 }
+
+-- Fase 9: Memoria del monstruo
+Config.MAX_ACTION_HISTORY = 6
+Config.MAX_SIGHTINGS = 10
+Config.SIGHTING_COOLDOWN = 10
+Config.SIGHTING_RANGE = 60
+
+-- Fase 9: Fases de personalidad (segundos desde inicio de ronda)
+Config.PHASE_CAUTIOUS_END = 100
+Config.PHASE_AGGRESSIVE_END = 200
+
+-- Fase 9: Speech del monstruo
+Config.MONSTER_SPEECH_COLOR = Color3.fromRGB(200, 30, 30)
 
 return Config

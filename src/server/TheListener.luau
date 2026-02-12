@@ -1,7 +1,9 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local GroqAPI = require(script.Parent.GroqAPI)
 local MonsterController = require(script.Parent.MonsterController)
+local MonsterMemory = require(script.Parent.MonsterMemory)
 
 local TheListener = {}
 
@@ -27,9 +29,26 @@ local function connectPlayer(player: Player)
 	end)
 end
 
+-- Enviar speech del monstruo a todos los jugadores
+local function handleMonsterSpeech(speech: string)
+	local showMessageEvent = ReplicatedStorage:FindFirstChild("ShowMessage")
+	if not showMessageEvent then return end
+
+	local formattedSpeech = "\"" .. speech .. "\""
+
+	for _, player in Players:GetPlayers() do
+		showMessageEvent:FireClient(player, formattedSpeech, Config.MONSTER_SPEECH_COLOR)
+	end
+
+	print("[TheListener] Monster speech: " .. speech)
+end
+
 -- Enviar buffer acumulado a Groq y procesar respuesta
 local function processBuffer()
-	if #chatBuffer == 0 or isProcessing then
+	if isProcessing then return end
+
+	-- Solo procesar si el monstruo existe en el mundo
+	if not workspace:FindFirstChild("SenorBarriga") and not workspace:FindFirstChild("ShadowHunter") then
 		return
 	end
 
@@ -39,17 +58,40 @@ local function processBuffer()
 	local messages = table.clone(chatBuffer)
 	table.clear(chatBuffer)
 
-	local chatLog = table.concat(messages, "\n")
-	print("[TheListener] Enviando " .. #messages .. " mensajes a Groq...")
+	local chatLog = ""
+	if #messages > 0 then
+		chatLog = table.concat(messages, "\n")
+		print("[TheListener] Enviando " .. #messages .. " mensajes + memoria a Groq...")
+	else
+		print("[TheListener] Sin mensajes, enviando memoria a Groq...")
+	end
 
-	local actionData = GroqAPI.analyze(chatLog)
+	-- Construir contexto de memoria y personalidad
+	local memoryContext = MonsterMemory.buildContextString()
+	local personalityPhase = MonsterMemory.getPersonalityPhase()
+
+	print("[TheListener] Fase: " .. personalityPhase)
+
+	local actionData = GroqAPI.analyze(chatLog, memoryContext, personalityPhase)
 
 	if actionData then
 		print("[TheListener] === ACCION DEL MONSTRUO ===")
+		print("[TheListener] Fase: " .. personalityPhase)
 		print("[TheListener] Accion: " .. actionData.action)
 		print("[TheListener] Objetivo: " .. tostring(actionData.target or "ninguno"))
 		print("[TheListener] Razon: " .. tostring(actionData.reason))
+		if actionData.speech then
+			print("[TheListener] Speech: " .. actionData.speech)
+		end
 		print("[TheListener] ============================")
+
+		-- Registrar accion en memoria
+		MonsterMemory.recordAction(actionData.action, actionData.target, "ejecutando")
+
+		-- Manejar speech (trash talk)
+		if actionData.speech then
+			handleMonsterSpeech(actionData.speech)
+		end
 
 		MonsterController.executeAction(actionData)
 	else

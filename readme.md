@@ -96,3 +96,4 @@ Para evitar saturar la cuota de la API y mantener el rendimiento:
     return Secrets
     ```
 4.  Activar **HTTP Requests** en _Game Settings > Security_.
+    game.HttpService.HttpEnabled = true

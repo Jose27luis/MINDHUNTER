@@ -8,6 +8,7 @@ local MonsterSpawner = require(script.Parent.MonsterSpawner)
 local ClassManager = require(script.Parent.ClassManager)
 local ScoreboardManager = require(script.Parent.ScoreboardManager)
 local DataStoreManager = require(script.Parent.DataStoreManager)
+local MonsterMemory = require(script.Parent.MonsterMemory)
 
 local GameManager = {}
 
@@ -141,6 +142,7 @@ local function spawnKeys()
 				
 				keysCollected += 1
 				ScoreboardManager.registerKeyCollected(player)
+				MonsterMemory.recordGameEvent("llave_recogida", player.Name .. ", faltan " .. (Config.TOTAL_KEYS - keysCollected))
 				
 				-- Actualizar estado
 				if keysCollected >= Config.TOTAL_KEYS then
@@ -226,7 +228,10 @@ local function gameLoop()
 		keysCollected = 0
 		statusValue.Value = "ENCUENTRA " .. Config.TOTAL_KEYS .. " LLAVES PARA ESCAPAR!"
 		timer = Config.ROUND_TIME
-		
+
+		-- Resetear memoria del monstruo para la nueva ronda
+		MonsterMemory.reset()
+
 		-- Setup Mapa y Jugadores
 		MapBuilder.build()
 		spawnKeys()
@@ -243,6 +248,7 @@ local function gameLoop()
 				if humanoid then
 					humanoid.Died:Connect(function()
 						ScoreboardManager.registerDeath(player)
+						MonsterMemory.recordGameEvent("jugador_murio", player.Name)
 					end)
 				end
 			end
@@ -376,6 +382,7 @@ function GameManager.init()
 				if keysCollected >= Config.TOTAL_KEYS then
 					player:SetAttribute("Escaped", true)
 					ScoreboardManager.registerEscape(player)
+					MonsterMemory.recordGameEvent("jugador_escapo", player.Name)
 
 					-- Mensaje de éxito (NO teletransportar, dejar en el mundo)
 					showMessageEvent:FireClient(player, "¡ESCAPASTE! Ahora estás a salvo.", Color3.fromRGB(50, 255, 50))

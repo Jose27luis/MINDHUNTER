@@ -2,6 +2,7 @@ local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local MapData = require(game.ReplicatedStorage.Shared.MapData)
+local MonsterMemory = require(script.Parent.MonsterMemory)
 
 local MonsterController = {}
 
@@ -9,6 +10,7 @@ local monster: Model? = nil
 local isMoving = false
 local actionThread: thread? = nil
 local lightsCache: { PointLight } = {}
+local sightingCooldowns: { [string]: number } = {}
 
 -- Cancelar la accion actual
 local function cancelAction()
@@ -129,6 +131,14 @@ local function navigateTo(targetPosition: Vector3)
 		end
 	end
 
+	-- Registrar visita en memoria
+	if monster and monster.PrimaryPart then
+		local currentRoom = MonsterMemory.getRoomFromPosition(monster.PrimaryPart.Position)
+		if currentRoom then
+			MonsterMemory.recordVisit(currentRoom)
+		end
+	end
+
 	print("[MonsterController] Llegó al destino")
 end
 
@@ -168,6 +178,18 @@ local function getClosestPlayerPosition(): Vector3?
 			if dist < closestDist then
 				closestDist = dist
 				closestPos = root.Position
+			end
+
+			-- Registrar avistamiento si esta dentro del rango de deteccion
+			if dist < Config.SIGHTING_RANGE then
+				local now = os.clock()
+				if not sightingCooldowns[player.Name] or (now - sightingCooldowns[player.Name]) > Config.SIGHTING_COOLDOWN then
+					local playerRoom = MonsterMemory.getRoomFromPosition(root.Position)
+					if playerRoom then
+						MonsterMemory.recordSighting(player.Name, playerRoom)
+						sightingCooldowns[player.Name] = now
+					end
+				end
 			end
 		end
 	end
@@ -283,6 +305,15 @@ end
 function MonsterController.init(npcModel: Model?, lights: { PointLight }?)
 	monster = npcModel
 	lightsCache = lights or {}
+	sightingCooldowns = {}
+
+	-- Registrar habitacion de spawn en memoria
+	if monster and monster.PrimaryPart then
+		local spawnRoom = MonsterMemory.getRoomFromPosition(monster.PrimaryPart.Position)
+		if spawnRoom then
+			MonsterMemory.recordVisit(spawnRoom)
+		end
+	end
 
 	-- Iniciar patrulla autonoma al arrancar
 	actionThread = task.spawn(function()

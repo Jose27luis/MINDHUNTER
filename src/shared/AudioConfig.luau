@@ -3,46 +3,43 @@ local AudioConfig = {}
 -- ==========================================
 -- MÚSICA (Tracks completos)
 -- ==========================================
+-- SETUP: Sube cada MP3 de src/audio/ a https://create.roblox.com/dashboard/creations
+-- Click "Audio" → "Upload Audio" → sube el archivo → copia el Asset ID
+-- Reemplaza cada "PONER_ID_AQUI" con el numero del asset (ejemplo: rbxassetid://123456789)
 
 AudioConfig.Music = {
-	-- Lobby - Música tranquila de espera
 	Lobby = {
-		Id = "rbxassetid://1845756489", -- Ambient calm
+		Id = "rbxassetid://108573879834581",
 		Volume = 0.3,
 		Looped = true,
 	},
 
-	-- Exploración - Tensión baja, atmósfera inquietante
 	Exploration = {
-		Id = "rbxassetid://9120386436", -- Eerie ambient
+		Id = "rbxassetid://99301663361898",
 		Volume = 0.25,
 		Looped = true,
 	},
 
-	-- Tensión - El monstruo está cerca
 	Tension = {
-		Id = "rbxassetid://9120386436", -- Suspense (mismo que exploration por ahora)
+		Id = "rbxassetid://102158293618829",
 		Volume = 0.4,
 		Looped = true,
 	},
 
-	-- Persecución - Música intensa de chase
 	Chase = {
-		Id = "rbxassetid://9120386436", -- Chase intense
+		Id = "rbxassetid://70573032079710",
 		Volume = 0.5,
 		Looped = true,
 	},
 
-	-- Victoria - Música épica al escapar
 	Victory = {
-		Id = "rbxassetid://1845756489", -- Victory
+		Id = "rbxassetid://86828154524889",
 		Volume = 0.4,
 		Looped = false,
 	},
 
-	-- Derrota - Música oscura y triste
 	Defeat = {
-		Id = "rbxassetid://9120386436", -- Defeat dark
+		Id = "rbxassetid://87118754302990",
 		Volume = 0.35,
 		Looped = false,
 	},

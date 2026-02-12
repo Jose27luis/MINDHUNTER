@@ -155,7 +155,9 @@ MapData.Rooms = {
 MapData.ROOM_NAMES = {
 	"Biblioteca", "Sala", "Cocina", "Dormitorio",
 	"Pasillo Principal", "Comedor", "Sotano", "Jardin",
-	"Oficina", "Bano", "Almacen", "Huespedes"
+	"Oficina", "Bano", "Almacen", "Huespedes",
+	"Pasillo Oscuro", "Pasillo Oeste", "Pasillo Este",
+	"Galeria Oeste", "Galeria Este"
 }
 
 -- Mapeo de nombres del chat/IA a claves internas (lowercase para tolerancia)
@@ -178,6 +180,16 @@ MapData.NAME_TO_KEY = {
 	["almacén"] = "Almacen",
 	["huespedes"] = "CuartoHuespedes",
 	["cuarto de huespedes"] = "CuartoHuespedes",
+	["pasillo oscuro"] = "PasilloTrasero",
+	["pasillo trasero"] = "PasilloTrasero",
+	["pasillo oeste"] = "CornerOeste",
+	["corner oeste"] = "CornerOeste",
+	["pasillo este"] = "CornerEste",
+	["corner este"] = "CornerEste",
+	["galeria oeste"] = "NexoOeste",
+	["nexo oeste"] = "NexoOeste",
+	["galeria este"] = "NexoEste",
+	["nexo este"] = "NexoEste",
 }
 
 -- Muebles y decoracion por habitacion (Reajustado para escala x2)
